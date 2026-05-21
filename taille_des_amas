@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 
-this is just to see if it registers with any edits
+this is just to see if it registers with any edits ok wtf
 
 # Création d'une matrice NxN avec des nombres aléatoires entre 0 et 1
 # puis transformation de la matrice en matrice de booléens grâce à p.
