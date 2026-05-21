@@ -1,0 +1,246 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+#program utilise pour etudier les effets de tailles sur les reseaux carres/rectangle 3D
+#Tableau NxM
+#nombre de repetition pour chaque p
+
+
+
+def generation_grille_3D_rectangle(x,y,z,p):
+
+    grille = np.random.random((x,y,z))<p
+
+    return grille
+
+
+#test
+grille_3D_test = generation_grille_3D_rectangle(5,6,7,0.5)
+print(grille_3D_test)
+
+
+
+#verification de la proportion des sites occupés
+
+print(np.mean(generation_grille_3D_rectangle(10,20,30,0.6)))
+
+
+
+
+def afficher_grille_3D(grille):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = "3d")
+
+    ax.voxels(grille)
+    plt.show()
+
+
+#tester la génération de grille N = 10, p = 0.6
+
+grille06 = generation_grille_3D_rectangle(10,20,30,0.6)
+afficher_grille_3D(grille06)
+
+
+
+def voisins_r(i,j,k, x,y,z):
+    candidats = [(i-1,j,k), (i+1,j,k), (i, j-1,k), (i,j+1,k),(i,j,k-1),(i,j,k+1)]
+    voisins_valides = []
+
+    for a, b, c in candidats:
+        if 0 <= a < x and 0 <= b <  y  and 0<=c < z:
+            voisins_valides.append((a,b,c))
+    return voisins_valides
+
+
+print(voisins_r(0,0,0,2,3,4))
+
+
+print(voisins_r(2,3, 4,6,7,8))
+
+
+def exploration_amas_3D_r(grille,depart,visites):
+
+    x,y,z = grille.shape #taille de la grille
+
+    pile = [depart] #site de départ
+    amas = [] #coordonnées des sites qui créent un amas avec le site depart
+
+    visites.add(depart) #liste avec les sites déjà controlés pour ne pas les recontroler une seconde fois
+
+    while pile:
+        i,j,k = pile.pop()
+        amas.append((i,j,k))
+
+        for a,b,c in voisins_r(i,j,k,x,y,z): #controle des voisins du site observé
+            if grille[a,b,c] and (a,b,c) not in visites: #test si le site voisin considéré et vide ou pas et si on l'a pas déjà controlé
+                visites.add((a,b,c))
+                pile.append((a,b,c))
+
+    return amas
+
+def trouver_amas_3D_r(grille):
+    x,y,z = grille.shape
+    visites = set() #creation d'un ensemble des sites déjà visités (ne contient pas de doublons, car set)
+    liste_amas = [] #liste pour stocker les amas trouvés
+
+    for i in range(x):
+        for j in range(y): #pour chaque ligne i on parcourt toutes les colonnes j
+
+            for k in range(z):
+                if grille[i,j,k] and (i,j,k) not in visites: #vérifie si le site i,j est occupé ou non et s'il a déjà été visité ou non
+                    amas = exploration_amas_3D_r(grille, (i,j,k),visites) #si c'est le cas, i,j et le début d'un nouvel amas et on utilise la fonction exploration_amas pour cartographier l'amas
+                    liste_amas.append(amas) #on ajoute l'amas cartographié de départ i,j à la liste qui repère les amas
+    return liste_amas
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+grille_test_3D = np.array([
+    [[1,1,0],
+     [0,1,0],
+     [0,0,0]],
+
+    [[0,0,0],
+     [0,1,0],
+     [0,0,1]],
+
+    [[0,0,0],
+     [0,0,0],
+     [0,0,1]]
+], dtype=bool)
+
+amas = trouver_amas_3D_r(grille_test_3D)
+
+for a in amas:
+    print(a, "taille de l'amas =", len(a))
+
+
+def amas_percole_verticalement_3D_r(amas, x,y,z):
+    touche_haut = False
+    touche_bas = False
+
+    for i, j, k in amas:
+        if i == 0:
+            touche_haut = True
+        if i == x - 1:
+            touche_bas = True
+
+    return touche_haut and touche_bas
+
+
+def amas_percole_horizontalement_3D_r(amas, x,y,z):
+    touche_gauche = False
+    touche_droite = False
+
+    for i, j, k in amas:
+        if j == 0:
+            touche_gauche = True
+        if j == y - 1:
+            touche_droite = True
+
+    return touche_gauche and touche_droite
+
+
+def amas_percole_frontback_3D_r(amas, x,y,z):
+    touche_foward = False
+    touche_back = False
+    for i, j, k in amas:
+        if k == 0:
+            touche_foward = True
+        if k == z - 1:
+            touche_back = True
+    return touche_foward and touche_back
+
+
+def percole_3D_r(grille):
+    x,y,z = grille.shape
+    liste_amas = trouver_amas_3D_r(grille)
+
+    for amas in liste_amas:
+        if amas_percole_verticalement_3D_r(amas, x,y,z) or amas_percole_horizontalement_3D_r(amas,x,y,z) or amas_percole_frontback_3D_r(amas, x,y,z):
+            return True
+
+    return False
+
+
+
+def proba_percolation_3D_r(x,y,z,p,nb_repetitions):
+    compteur_percolation = 0
+
+    for k in range(nb_repetitions):
+        grille = generation_grille_3D_rectangle(x,y,z,p) #creations de grilles NxN à proba p aléatoires
+
+        if percole_3D_r(grille): #voir si les grilles percoles si oui on augmente le compteur
+            compteur_percolation += 1
+
+    proba = compteur_percolation/nb_repetitions
+    return proba
+
+
+
+def estimer_pc(x,y,z, repetitions):
+    valeurs_p = np.linspace(0.10, 0.75, 31)
+    resultats = []
+
+    for p in valeurs_p:
+        proba = proba_percolation_3D_r(x,y,z, p, repetitions)
+        resultats.append(proba)
+
+    resultats = np.array(resultats)
+    indice = np.argmin(abs(resultats - 0.5))
+    pc_estime = valeurs_p[indice]
+
+    return pc_estime, valeurs_p, resultats
+
+
+
+
+
+
+
+def estimer_pc_3D_r(x, y, z, repetitions):
+
+    valeurs_p = np.linspace(0.22, 0.35, 40)
+    resultats = []
+
+    for p in valeurs_p:
+
+        proba = proba_percolation_3D_r(x, y, z, p, repetitions)
+
+        resultats.append(proba)
+
+    resultats = np.array(resultats)
+
+    indice = np.argmin(abs(resultats - 0.5))
+
+    pc_estime = valeurs_p[indice]
+
+    return pc_estime, valeurs_p, resultats
+
+
+repetitions = 1
+
+tailles = [
+    (20, 20, 20),
+    (120, 20, 20),
+    (400, 20, 20)
+]
+
+for x, y, z in tailles:
+
+    pc, valeurs_p, resultats = estimer_pc_3D_r(x, y, z, repetitions)
+
+    plt.plot(
+        valeurs_p,
+        resultats,
+        marker="o",markersize=2,  linestyle='None',
+        label=f"{x}x{y}x{z}, pc≈{pc:.3f}"
+    )
+
+plt.xlabel("p")
+plt.ylabel("Probabilité de percolation")
+plt.title("Estimation de pc pour réseaux rectangulaires 3D")
+plt.grid()
+plt.legend()
+plt.show()
